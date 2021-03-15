@@ -54,4 +54,11 @@ union wg_aead_nonce {
 	uint8_t as_bytes[sizeof(struct wg_aead_nonce_fields)];
 } __attribute__((packed));
 
+_Static_assert(sizeof(union wg_mac) == wg_mac_len, "");
+_Static_assert(sizeof(union wg_hash) == wg_hash_len, "");
+_Static_assert(sizeof(union wg_key) == wg_key_len, "");
+_Static_assert(sizeof(union wg_symmetric_key) == wg_symmetric_key_len, "");
+_Static_assert(sizeof(union wg_xaead_nonce) == wg_xaead_nonce_len, "");
+_Static_assert(sizeof(union wg_cookie) == wg_cookie_len, "");
+
 #endif
