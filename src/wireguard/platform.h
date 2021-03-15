@@ -74,6 +74,10 @@ union wg_timestamp {
 #define wg_timestamp_len (sizeof(union wg_timestamp))
 _Static_assert(wg_timestamp_len == 12, "");
 
+// Populates TAI64N formatted timestamp structure with current time.
+// Time is monotonically increasing.
+int __attribute__((warn_unused_result)) wg_timestamp(union wg_timestamp *out);
+
 // memcpy wrapper that statically verifies the sizes are the same.
 #define wg_safe_memcpy(dst, dst_size, src, src_size) ({ \
 	_Static_assert((dst_size) == (src_size), "");   \
