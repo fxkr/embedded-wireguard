@@ -84,6 +84,20 @@ extern const uint8_t wg_label_mac1[8];	  // No zero termination!
 extern const uint8_t wg_label_cookie[8];  // No zero termination!
 extern const uint8_t wg_zero[1];	  // No zero termination!
 
+_Static_assert(sizeof(struct wg_message_handshake_initiation_fields) == sizeof(union wg_message_handshake_initiation), "");
+_Static_assert(sizeof(struct wg_message_handshake_response_fields) == sizeof(union wg_message_handshake_response), "");
+_Static_assert(sizeof(struct wg_message_data_fields) == sizeof(union wg_message_data), "");
+_Static_assert(sizeof(struct wg_message_cookie_reply_fields) == sizeof(union wg_message_cookie_reply), "");
+
+_Static_assert(sizeof(struct wg_message_handshake_initiation_fields) == 148, "");
+_Static_assert(sizeof(struct wg_message_handshake_response_fields) == 92, "");
+_Static_assert(sizeof(struct wg_message_data_fields) == 16, "");
+_Static_assert(sizeof(struct wg_message_cookie_reply_fields) == 64, "");
+
+_Static_assert(offsetof(struct wg_message_handshake_initiation_fields, mac1) == 116, "");
+_Static_assert(offsetof(struct wg_message_handshake_initiation_fields, mac2) == 132, "");
+_Static_assert(offsetof(struct wg_message_handshake_response_fields, mac1) == 60, "");
+_Static_assert(offsetof(struct wg_message_handshake_response_fields, mac2) == 76, "");
 int __attribute__((warn_unused_result)) wg_window_init(struct wg_window *window);
 int __attribute__((warn_unused_result)) wg_window_check(struct wg_window *window, uint64_t seq);
 
