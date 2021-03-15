@@ -177,6 +177,9 @@ int __attribute__((warn_unused_result)) wg_peer_verify_mac2(struct wg_peer *peer
 int __attribute__((warn_unused_result)) wg_peer_generate_handshake_initiation(struct wg_peer *peer, union wg_message_handshake_initiation *msg);
 int __attribute__((warn_unused_result)) wg_peer_handle_handshake_initiation(struct wg_peer *peer, union wg_message_handshake_initiation *msg, const struct wg_sockaddr *src, bool *out_cookie_required);
 
+int __attribute__((warn_unused_result)) wg_peer_generate_handshake_response(struct wg_peer *peer, union wg_message_handshake_response *msg);
+int __attribute__((warn_unused_result)) wg_peer_handle_handshake_response(struct wg_peer *peer, union wg_message_handshake_response *msg, const struct wg_sockaddr *src, bool *out_cookie_required);
+
 int __attribute__((warn_unused_result)) wg_peer_set_local_public_key(struct wg_peer *peer, union wg_key *key);
 int __attribute__((warn_unused_result)) wg_peer_set_local_private_key(struct wg_peer *peer, union wg_key *key);
 int __attribute__((warn_unused_result)) wg_peer_set_remote_public_key(struct wg_peer *peer, union wg_key *key);
