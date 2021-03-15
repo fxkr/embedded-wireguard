@@ -30,6 +30,33 @@
 #else
 #error Bad __BYTE_ORDER__
 #endif
+
+// IPv4 address family
+#define WG_AF_INET 2
+
+// IPv6 address family
+#define WG_AF_INET6 10
+
+union wg_ipv6_addr {
+	uint8_t u8_be[16];  // Network byte order
+	uint32_t u32_be[4]; // Network byte order
+	uint64_t u64_be[2]; // Network byte order
+};
+
+union wg_ipv4_addr {
+	uint8_t u8_be[4]; // Network byte order
+	uint32_t u32_be;  // Network byte order
+};
+
+struct wg_sockaddr {
+	int family; // Either WG_AF_INET or WG_AF_INET6
+	union {
+		union wg_ipv4_addr v4; // Only valid if family is WG_AF_INET
+		union wg_ipv6_addr v6; // Only valid if family is WG_AF_INET6
+	} addr;
+	uint16_t port_be16; // TCP/UDP port number. Network byte order.
+};
+
 // TAI64N format as specified by WireGuard spec.
 struct wg_timestamp_fields {
 	// Seconds since 1970 TAI. Big endian.
