@@ -1,6 +1,7 @@
 #include "wireguard/crypto.h"
 #include "wireguard/platform.h"
 
+#include "wireguard.h"
 #include "wireguard/wireguard.h"
 
 // No zero termination! Lengths are also declared in header; keep in sync.
@@ -9,6 +10,14 @@ const uint8_t wg_identifier[34] = {"WireGuard v1 zx2c4 Jason@zx2c4.com"};
 const uint8_t wg_label_mac1[8] = {"mac1----"};
 const uint8_t wg_label_cookie[8] = {"cookie--"};
 
+int wg_init(void)
+{
+	if (0 != wg_crypto_init()) {
+		return 1; // Error
+	}
+
+	return 0; // Success
+}
 int wg_window_init(struct wg_window *window)
 {
 	memset(window, 0, sizeof(struct wg_window));
