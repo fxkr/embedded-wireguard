@@ -1,4 +1,5 @@
 #include "wireguard/crypto.h"
+#include "wireguard/packet.h"
 #include "wireguard/platform.h"
 
 #include "wireguard.h"
@@ -868,6 +869,108 @@ out:
 
 	return ret;
 }
+
+int wg_peer_generate_message_data(struct wg_peer *peer, struct wg_packet *pkt)
+{
+	int ret = 1; // Error
+
+	if (!peer->session.sending_key_valid) {
+		goto out;
+	}
+
+	size_t plaintext_len = wg_packet_data_len(pkt);
+	size_t ciphertext_len = wg_aead_len(plaintext_len);
+	if (ciphertext_len > peer->mtu) {
+		goto out;
+	}
+
+	size_t padding_len = (-ciphertext_len & 15); // Round up to multiple of 16
+	if (ciphertext_len + padding_len > peer->mtu) {
+		// TODO: Account for outer IP and UDP headers
+		padding_len = peer->mtu - ciphertext_len;
+	}
+
+	wg_packet_put_zero(pkt, padding_len + wg_aead_len(0));
+	plaintext_len += padding_len;
+	ciphertext_len += padding_len;
+
+	// Prepend WireGuard header
+	uint8_t *payload = pkt->data;
+	union wg_message_data *wg_hdr = (union wg_message_data *)wg_packet_push(pkt, sizeof(union wg_message_data));
+	wg_hdr->as_fields.message_type = WG_MESSAGE_DATA;
+	memset(wg_hdr->as_fields.reserved_zero, 0, sizeof(wg_hdr->as_fields.reserved_zero));
+	wg_hdr->as_fields.receiver_index_le32 = wg_htole32(peer->session.remote_index);
+	wg_hdr->as_fields.counter_le64 = wg_htole64(peer->session.sending_key_counter);
+
+	// Encrypt payload in-place
+	if (0 != wg_aead_encrypt(
+		     payload, ciphertext_len,
+		     &peer->session.sending_key,
+		     peer->session.sending_key_counter,
+		     payload, plaintext_len,
+		     NULL, 0)) {
+		goto out;
+	}
+
+	peer->session.sending_key_counter++;
+
+	ret = 0; // Success
+
+out:
+	return ret;
+}
+
+int wg_peer_handle_message_data(struct wg_peer *peer, struct wg_packet *pkt)
+{
+	int ret = 1; // Error
+
+	if (!peer->session.receiving_key_valid) {
+		goto out;
+	}
+
+	// Get header and payload pointers
+	if (wg_packet_data_len(pkt) < sizeof(union wg_message_data)) {
+		goto out;
+	}
+	union wg_message_data *wg_hdr = (union wg_message_data *)pkt->data;
+	if (wg_hdr->as_fields.message_type != WG_MESSAGE_DATA) {
+		goto out;
+	}
+	if (wg_le32toh(wg_hdr->as_fields.receiver_index_le32) != peer->session.local_index) {
+		goto out;
+	}
+	uint8_t *payload = wg_packet_pull(pkt, sizeof(union wg_message_data));
+
+	// Calculate expected payload length
+	size_t plaintext_payload_len = wg_packet_data_len(pkt) - wg_aead_len(0);
+	if (wg_packet_data_len(pkt) < wg_aead_len(0)) {
+		goto out;
+	}
+
+	// Decrypt payload in-place
+	if (0 != wg_aead_decrypt(
+		     payload, plaintext_payload_len,
+		     &peer->session.receiving_key,
+		     wg_le64toh(wg_hdr->as_fields.counter_le64),
+		     payload, wg_packet_data_len(pkt),
+		     NULL, 0)) {
+		goto out;
+	}
+
+	// Verify sequence number (_after_ authentication!)
+	if (0 != wg_window_check(&peer->session.window, wg_le64toh(wg_hdr->as_fields.counter_le64))) {
+		goto out;
+	}
+
+	// Payload is shorter than ciphertext due to authentication tag
+	wg_packet_trim(pkt, plaintext_payload_len);
+
+	ret = 0; // Success
+
+out:
+	return ret;
+}
+
 int wg_window_init(struct wg_window *window)
 {
 	memset(window, 0, sizeof(struct wg_window));

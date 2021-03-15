@@ -4,6 +4,7 @@
 // This is core of the internal API of Embedded WireGuard.
 
 #include "wireguard/crypto.h"
+#include "wireguard/packet.h"
 #include "wireguard/platform.h"
 
 enum wg_message_type {
@@ -179,6 +180,9 @@ int __attribute__((warn_unused_result)) wg_peer_handle_handshake_initiation(stru
 
 int __attribute__((warn_unused_result)) wg_peer_generate_handshake_response(struct wg_peer *peer, union wg_message_handshake_response *msg);
 int __attribute__((warn_unused_result)) wg_peer_handle_handshake_response(struct wg_peer *peer, union wg_message_handshake_response *msg, const struct wg_sockaddr *src, bool *out_cookie_required);
+
+int __attribute__((warn_unused_result)) wg_peer_generate_message_data(struct wg_peer *peer, struct wg_packet *pkt);
+int __attribute__((warn_unused_result)) wg_peer_handle_message_data(struct wg_peer *peer, struct wg_packet *pkt);
 
 int __attribute__((warn_unused_result)) wg_peer_set_local_public_key(struct wg_peer *peer, union wg_key *key);
 int __attribute__((warn_unused_result)) wg_peer_set_local_private_key(struct wg_peer *peer, union wg_key *key);
