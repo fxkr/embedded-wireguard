@@ -61,4 +61,17 @@ _Static_assert(sizeof(union wg_symmetric_key) == wg_symmetric_key_len, "");
 _Static_assert(sizeof(union wg_xaead_nonce) == wg_xaead_nonce_len, "");
 _Static_assert(sizeof(union wg_cookie) == wg_cookie_len, "");
 
+// Zeroes the memory indicated by ptr and size and performs a memory barrier
+// to guarantee the zeroization is not optimized away.
+// Implemented as a static inline header function to keep LTO from removing it as well.
+// See libsodium's sodium_memzero for alternative approaches.
+static inline void wg_secure_memzero(void *ptr, size_t size)
+{
+	memset(ptr, 0, size);
+	asm volatile("" ::"r"(ptr)
+		     : "memory");
+#if !defined(__GNUC__) && !defined(__clang__)
+#error Cannot guarantee wg_secure_memzero works for this compiler
+#endif
+}
 #endif
