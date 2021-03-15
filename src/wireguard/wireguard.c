@@ -32,6 +32,96 @@ int wg_peer_fini(struct wg_peer *peer)
 
 	return 0; // Success
 }
+
+int wg_peer_set_local_public_key_base64(struct wg_peer *peer, const char *base64_key, size_t base64_key_len)
+{
+	union wg_key key;
+	int ret = 1; // Error
+
+	if (0 != wg_base64_to_key(&key, base64_key, base64_key_len)) {
+		goto out;
+	}
+
+	if (0 != wg_peer_set_local_public_key(peer, &key)) {
+		goto out;
+	}
+
+	ret = 0; // Success
+
+out:
+	wg_secure_memzero(&key, sizeof(key));
+	return ret;
+}
+
+int wg_peer_set_local_private_key_base64(struct wg_peer *peer, const char *base64_key, size_t base64_key_len)
+{
+	union wg_key key;
+	int ret = 1; // Error
+
+	if (0 != wg_base64_to_key(&key, base64_key, base64_key_len)) {
+		goto out;
+	}
+
+	if (0 != wg_peer_set_local_private_key(peer, &key)) {
+		goto out;
+	}
+
+	ret = 0; // Success
+
+out:
+	wg_secure_memzero(&key, sizeof(key));
+	return ret;
+}
+
+int wg_peer_set_remote_public_key_base64(struct wg_peer *peer, const char *base64_key, size_t base64_key_len)
+{
+	union wg_key key;
+	int ret = 1; // Error
+
+	if (0 != wg_base64_to_key(&key, base64_key, base64_key_len)) {
+		goto out;
+	}
+
+	if (0 != wg_peer_set_remote_public_key(peer, &key)) {
+		goto out;
+	}
+
+	ret = 0; // Success
+
+out:
+	wg_secure_memzero(&key, sizeof(key));
+	return ret;
+}
+
+int wg_peer_set_local_public_key(struct wg_peer *peer, union wg_key *key)
+{
+	peer->local_static_public = *key;
+	return 0;
+}
+
+int wg_peer_set_local_private_key(struct wg_peer *peer, union wg_key *key)
+{
+	peer->local_static_private = *key;
+	return 0;
+}
+
+int wg_peer_set_remote_public_key(struct wg_peer *peer, union wg_key *key)
+{
+	peer->remote_static_public = *key;
+	return 0;
+}
+
+int wg_peer_set_mtu(struct wg_peer *peer, int mtu)
+{
+	peer->mtu = mtu;
+	return 0;
+}
+
+int wg_peer_set_busy(struct wg_peer *peer, bool busy)
+{
+	peer->cookie_required = busy;
+	return 0;
+}
 int wg_window_init(struct wg_window *window)
 {
 	memset(window, 0, sizeof(struct wg_window));

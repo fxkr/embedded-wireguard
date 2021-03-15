@@ -170,6 +170,19 @@ int __attribute__((warn_unused_result)) wg_init(void);
 
 int __attribute__((warn_unused_result)) wg_peer_init(struct wg_peer *peer);
 int __attribute__((warn_unused_result)) wg_peer_fini(struct wg_peer *peer);
+
+int __attribute__((warn_unused_result)) wg_peer_set_local_public_key(struct wg_peer *peer, union wg_key *key);
+int __attribute__((warn_unused_result)) wg_peer_set_local_private_key(struct wg_peer *peer, union wg_key *key);
+int __attribute__((warn_unused_result)) wg_peer_set_remote_public_key(struct wg_peer *peer, union wg_key *key);
+
+int __attribute__((warn_unused_result)) wg_peer_set_local_public_key_base64(struct wg_peer *peer, const char *base64_key, size_t base64_key_len);
+int __attribute__((warn_unused_result)) wg_peer_set_local_private_key_base64(struct wg_peer *peer, const char *base64_key, size_t base64_key_len);
+int __attribute__((warn_unused_result)) wg_peer_set_remote_public_key_base64(struct wg_peer *peer, const char *base64_key, size_t base64_key_len);
+
+int __attribute__((warn_unused_result)) wg_peer_set_mtu(struct wg_peer *peer, int mtu);
+
+int __attribute__((warn_unused_result)) wg_peer_set_busy(struct wg_peer *peer, bool busy);
+
 int __attribute__((warn_unused_result)) wg_window_init(struct wg_window *window);
 int __attribute__((warn_unused_result)) wg_window_check(struct wg_window *window, uint64_t seq);
 
