@@ -74,4 +74,10 @@ union wg_timestamp {
 #define wg_timestamp_len (sizeof(union wg_timestamp))
 _Static_assert(wg_timestamp_len == 12, "");
 
+// memcpy wrapper that statically verifies the sizes are the same.
+#define wg_safe_memcpy(dst, dst_size, src, src_size) ({ \
+	_Static_assert((dst_size) == (src_size), "");   \
+	memcpy((dst), (src), (src_size));               \
+})
+
 #endif
