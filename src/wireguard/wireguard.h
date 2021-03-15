@@ -72,10 +72,19 @@ union wg_message_cookie_reply {
 	struct wg_message_cookie_reply_fields as_fields;
 } __attribute__((packed));
 
+// Used to track sequence numbers seen, so that we can defend against replay attacks.
+struct wg_window {
+	uint32_t bitmap;
+	uint64_t last_seq;
+};
+
 extern const uint8_t wg_construction[37]; // No zero termination!
 extern const uint8_t wg_identifier[34];	  // No zero termination!
 extern const uint8_t wg_label_mac1[8];	  // No zero termination!
 extern const uint8_t wg_label_cookie[8];  // No zero termination!
 extern const uint8_t wg_zero[1];	  // No zero termination!
+
+int __attribute__((warn_unused_result)) wg_window_init(struct wg_window *window);
+int __attribute__((warn_unused_result)) wg_window_check(struct wg_window *window, uint64_t seq);
 
 #endif
