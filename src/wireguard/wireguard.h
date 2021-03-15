@@ -167,6 +167,9 @@ _Static_assert(offsetof(struct wg_message_handshake_response_fields, mac1) == 60
 _Static_assert(offsetof(struct wg_message_handshake_response_fields, mac2) == 76, "");
 
 int __attribute__((warn_unused_result)) wg_init(void);
+
+int __attribute__((warn_unused_result)) wg_peer_init(struct wg_peer *peer);
+int __attribute__((warn_unused_result)) wg_peer_fini(struct wg_peer *peer);
 int __attribute__((warn_unused_result)) wg_window_init(struct wg_window *window);
 int __attribute__((warn_unused_result)) wg_window_check(struct wg_window *window, uint64_t seq);
 

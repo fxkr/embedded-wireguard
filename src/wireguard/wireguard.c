@@ -18,6 +18,20 @@ int wg_init(void)
 
 	return 0; // Success
 }
+
+int wg_peer_init(struct wg_peer *peer)
+{
+	wg_secure_memzero(peer, sizeof(struct wg_peer));
+
+	return 0; // Success
+}
+
+int wg_peer_fini(struct wg_peer *peer)
+{
+	wg_secure_memzero(peer, sizeof(struct wg_peer));
+
+	return 0; // Success
+}
 int wg_window_init(struct wg_window *window)
 {
 	memset(window, 0, sizeof(struct wg_window));
