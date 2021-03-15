@@ -1,1 +1,10 @@
-.pio
+/.pio
+/.vscode
+
+/cov
+lcov.info
+
+/old/
+/NOTES.md
+
+*.swp
