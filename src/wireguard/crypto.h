@@ -74,4 +74,181 @@ static inline void wg_secure_memzero(void *ptr, size_t size)
 #error Cannot guarantee wg_secure_memzero works for this compiler
 #endif
 }
+
+// Returns whether the two symmetric keys are equal.
+// The comparison is constant time (ie, cryptophically secure).
+// Returns 0 on success, non-zero (usually 1) on error.
+bool __attribute__((warn_unused_result)) wg_symmetric_key_equals(
+    const union wg_symmetric_key *a,
+    const union wg_symmetric_key *b);
+
+// Returns whether the two keys are equal.
+// The comparison is constant time (ie, cryptophically secure).
+// Returns 0 on success, non-zero (usually 1) on error.
+bool __attribute__((warn_unused_result)) wg_key_equals(
+    const union wg_key *a,
+    const union wg_key *b);
+
+// Returns whether the two MAC's are equal.
+// The comparison is constant time (ie, cryptophically secure).
+// Returns 0 on success, non-zero (usually 1) on error.
+bool __attribute__((warn_unused_result)) wg_mac_equals(
+    const union wg_mac *a,
+    const union wg_mac *b);
+
+// Returns whether the two hashes are equal.
+// The comparison is constant time (ie, cryptophically secure).
+// Returns 0 on success, non-zero (usually 1) on error.
+bool __attribute__((warn_unused_result)) wg_hash_equals(
+    const union wg_hash *a,
+    const union wg_hash *b);
+
+// BLAKE2S hash.
+// Using the same memory location for input and output is ok.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_hash(
+    union wg_hash *out,
+    const uint8_t *in, size_t in_len);
+
+// BLAKE2S hash in an HMAC construction.
+// Using the same memory location for input and output is ok.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_hmac(
+    union wg_hash *out,
+    const union wg_key *key,
+    const uint8_t *in1, size_t in1_len);
+
+// Keyed BLAKE2S hash.
+// Using the same memory location for input and output is ok.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_mac(
+    union wg_mac *out,
+    const union wg_key *key,
+    const uint8_t *in1, size_t in1_len);
+
+// Keyed BLAKE2S hash.
+// Using the same memory location for input and output is ok.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_mac_with_cookie(
+    union wg_mac *out,
+    const union wg_cookie *key,
+    const uint8_t *in1, size_t in1_len);
+
+// BLAKE2S hash in an HMAC construction, hashing the concatenation of two inputs.
+// Using the same memory location for input(s) and output is ok.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_concat_hmac(
+    union wg_hash *out,
+    const union wg_key *key,
+    const uint8_t *in1, size_t in1_len,
+    const uint8_t *in2, size_t in2_len);
+
+// BLAKE2S hash in an HMAC construction, hashing the concatenation of two inputs.
+// Using the same memory location for input(s) and output is ok.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_concat_hash(
+    union wg_hash *out,
+    const uint8_t *in1, size_t in1_len,
+    const uint8_t *in2, size_t in2_len);
+
+// Generate random Curve25519 private and public keys.
+// Part of Diffie-Hellman key exchange.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_dh_generate(
+    union wg_key *out_priv,
+    union wg_key *out_pub);
+
+// Curve25519 point multiplication of a private key and a public key.
+// Part of Diffie-Hellman key exchange.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_dh(
+    union wg_key *dh_key,
+    const union wg_key *priv_key,
+    const union wg_key *public_key);
+
+// Populates memory with random bytes for a cryptographically secure PRNG.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_secure_random(
+    uint8_t *out, size_t out_len);
+
+// XChaCha20Poly1305 AEAD authenticated encryption.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_xaead(
+    uint8_t *out, size_t out_len,
+    const union wg_symmetric_key *key,
+    const union wg_xaead_nonce *nonce,
+    const uint8_t *plain_text, size_t plain_text_len,
+    const uint8_t *auth_text, size_t auth_text_len);
+
+// XChaCha20Poly1305 AEAD authenticated decryption.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_xaead_decrypt(
+    uint8_t *out_plaintext, size_t out_plaintext_len,
+    const union wg_symmetric_key *key,
+    const union wg_xaead_nonce *nonce,
+    const uint8_t *ciphertext_with_tag, size_t ciphertext_with_tag_len,
+    const uint8_t *auth_text, size_t auth_text_len);
+
+// ChaCha20Poly1305 AEAD authenticated encryption.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_aead_encrypt(
+    uint8_t *out, size_t out_len,
+    const union wg_symmetric_key *key,
+    uint64_t counter,
+    const uint8_t *plain_text, size_t plain_text_len,
+    const uint8_t *auth_text, size_t auth_text_len);
+
+// ChaCha20Poly1305 AEAD authenticated decryption.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_aead_decrypt(
+    uint8_t *out_plain_text, size_t out_plain_text_len,
+    const union wg_symmetric_key *key,
+    uint64_t counter,
+    const uint8_t *ciphertext_with_tag, size_t ciphertext_with_tag_len,
+    const uint8_t *auth_text, size_t auth_text_len);
+
+// HKDF key derivation function with one output.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_kdf1(
+    union wg_hash *out,
+    const union wg_key *key,
+    const uint8_t *input, size_t input_len);
+
+// HKDF key derivation function with two outputs.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_kdf2(
+    union wg_hash *out1,
+    union wg_hash *out2,
+    const union wg_key *key,
+    const uint8_t *input, size_t input_len);
+
+// HKDF key derivation function with three outputs.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_kdf3(
+    union wg_hash *out1,
+    union wg_hash *out2,
+    union wg_hash *out3,
+    const union wg_key *key,
+    const uint8_t *input, size_t input_len);
+
+// Encode a binary key to BASE64.
+// Returns 0 on success, non-zero (usually 1) on error.
+int __attribute__((warn_unused_result)) wg_key_to_base64(
+    char *out_str,
+    size_t out_str_len,
+    const union wg_key *key);
+
+// Decode BASE64 to a binary key.
+// The key the input represents is expected to have the length of a WireGuard public or private key.
+// The str_len parameter is the length of the string not including any zero termination.
+int __attribute__((warn_unused_result)) wg_base64_to_key(
+    union wg_key *key,
+    const char *str,
+    size_t str_len);
+
+// This function must be called at least once before any other function
+// from Embedded WireGuard's cryptographic subsystem are used.
+// It is safe to call it any number of times.
+int __attribute__((warn_unused_result)) wg_crypto_init(void);
+
 #endif
