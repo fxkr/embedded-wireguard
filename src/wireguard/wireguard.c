@@ -122,6 +122,70 @@ int wg_peer_set_busy(struct wg_peer *peer, bool busy)
 	peer->cookie_required = busy;
 	return 0;
 }
+
+int wg_peer_verify_mac1(struct wg_peer *peer, uint8_t *data, size_t data_len, union wg_mac *mac1)
+{
+	int ret = 1; // Error
+	union wg_mac temp_mac;
+	union wg_key temp_key;
+
+	if (0 != wg_concat_hash(
+		     &temp_key.as_hash,
+		     wg_label_mac1, sizeof(wg_label_mac1),
+		     peer->local_static_public.as_bytes, sizeof(peer->local_static_public.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_mac(
+		     &temp_mac,
+		     &temp_key,
+		     data, data_len)) {
+		goto out;
+	}
+	if (!wg_mac_equals(&temp_mac, mac1)) {
+		goto out;
+	}
+
+	ret = 0; // Success
+
+out:
+	wg_secure_memzero(&temp_key, sizeof(temp_key));
+	wg_secure_memzero(&temp_mac, sizeof(temp_mac));
+
+	return ret;
+}
+
+int wg_peer_verify_mac2(struct wg_peer *peer, const struct wg_sockaddr *src, uint8_t *data, size_t data_len, union wg_mac *mac2)
+{
+	int ret = 1; // Error
+	union wg_mac temp_mac;
+	union wg_cookie temp_cookie;
+
+	if (0 != wg_mac(&temp_cookie.as_mac,
+			&peer->cookie_secret,
+			(uint8_t *)src, sizeof(*src))) {
+		goto out;
+	}
+
+	if (0 != wg_mac_with_cookie(
+		     &temp_mac,
+		     &temp_cookie,
+		     data, data_len)) {
+		goto out;
+	}
+
+	if (!wg_mac_equals(&temp_mac, mac2)) {
+		goto out;
+	}
+
+	ret = 0; // Success
+
+out:
+	wg_secure_memzero(&temp_mac, sizeof(temp_mac));
+	wg_secure_memzero(&temp_cookie, sizeof(temp_cookie));
+
+	return ret;
+}
 int wg_window_init(struct wg_window *window)
 {
 	memset(window, 0, sizeof(struct wg_window));
