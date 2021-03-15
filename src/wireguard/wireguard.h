@@ -184,6 +184,9 @@ int __attribute__((warn_unused_result)) wg_peer_handle_handshake_response(struct
 int __attribute__((warn_unused_result)) wg_peer_generate_message_data(struct wg_peer *peer, struct wg_packet *pkt);
 int __attribute__((warn_unused_result)) wg_peer_handle_message_data(struct wg_peer *peer, struct wg_packet *pkt);
 
+int __attribute__((warn_unused_result)) wg_generate_message_cookie_reply(struct wg_peer *peer, union wg_message_cookie_reply *msg, const struct wg_sockaddr *remote_addr, uint64_t remote_index, union wg_mac *remote_mac1);
+int __attribute__((warn_unused_result)) wg_handle_message_cookie_reply(struct wg_peer *peer, union wg_message_cookie_reply *msg);
+
 int __attribute__((warn_unused_result)) wg_peer_set_local_public_key(struct wg_peer *peer, union wg_key *key);
 int __attribute__((warn_unused_result)) wg_peer_set_local_private_key(struct wg_peer *peer, union wg_key *key);
 int __attribute__((warn_unused_result)) wg_peer_set_remote_public_key(struct wg_peer *peer, union wg_key *key);

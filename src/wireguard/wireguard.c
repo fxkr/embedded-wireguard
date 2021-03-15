@@ -971,6 +971,91 @@ out:
 	return ret;
 }
 
+int wg_generate_message_cookie_reply(struct wg_peer *peer, union wg_message_cookie_reply *msg,
+				     const struct wg_sockaddr *remote_addr, uint64_t remote_index, union wg_mac *remote_mac1)
+{
+	int ret = 1; // Error
+	union wg_mac temp_mac;
+	union wg_symmetric_key temp_key;
+
+	memset(msg, 0, sizeof(union wg_message_cookie_reply));
+	msg->as_fields.message_type = WG_MESSAGE_HANDSHAKE_COOKIE;
+	msg->as_fields.receiver_index_le32 = wg_htole64(remote_index);
+
+	if (0 != wg_secure_random(msg->as_fields.nonce.as_bytes, sizeof(msg->as_fields.nonce.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_mac(&temp_mac,
+			&peer->cookie_secret,
+			(uint8_t *)remote_addr, sizeof(*remote_addr))) {
+		goto out;
+	}
+
+	if (0 != wg_concat_hash(
+		     &temp_key.as_hash,
+		     wg_label_cookie, sizeof(wg_label_cookie),
+		     peer->local_static_public.as_bytes, sizeof(peer->local_static_public.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_xaead(
+		     msg->as_fields.encrypted_cookie, sizeof(msg->as_fields.encrypted_cookie),
+		     &temp_key,
+		     &msg->as_fields.nonce,
+		     temp_mac.as_bytes, sizeof(temp_mac.as_bytes),
+		     remote_mac1->as_bytes, sizeof(remote_mac1->as_bytes))) {
+		goto out;
+	}
+
+	ret = 0; // Success
+
+out:
+	return ret;
+}
+
+int wg_handle_message_cookie_reply(struct wg_peer *peer, union wg_message_cookie_reply *msg)
+{
+	int ret = 1; // Error
+	union wg_cookie received_cookie;
+	union wg_timestamp received_cookie_timestamp;
+	union wg_symmetric_key temp_key;
+
+	if (msg->as_fields.message_type != WG_MESSAGE_HANDSHAKE_COOKIE) {
+		goto out;
+	}
+
+	if (0 != wg_concat_hash(
+		     &temp_key.as_hash,
+		     wg_label_cookie, sizeof(wg_label_cookie),
+		     peer->remote_static_public.as_bytes, sizeof(peer->remote_static_public.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_xaead_decrypt(
+		     received_cookie.as_bytes, sizeof(received_cookie.as_bytes),
+		     &temp_key,
+		     &msg->as_fields.nonce,
+		     msg->as_fields.encrypted_cookie, sizeof(msg->as_fields.encrypted_cookie),
+		     peer->session.last_sent_mac1.as_bytes, sizeof(peer->session.last_sent_mac1.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_timestamp(&received_cookie_timestamp)) {
+		goto out;
+	}
+
+	// Success. persist state changes
+	peer->session.received_cookie = received_cookie;
+	peer->session.received_cookie_timestamp = received_cookie_timestamp;
+	peer->session.received_cookie_valid = true;
+
+	ret = 0; // Success
+
+out:
+	return ret;
+}
+
 int wg_window_init(struct wg_window *window)
 {
 	memset(window, 0, sizeof(struct wg_window));
