@@ -163,53 +163,49 @@ void wg_blake2s_update(
     struct wg_blake2s_state *st,
     const uint8_t *in, uint8_t in_len)
 {
-again:
-	// This return covers two cases:
+	// This loop will end in two cases:
 	// a) We're passed nothing, so do nothing. Block may or may not be empty.
 	// b) We've copied into the block buffer. It may even be full.
 	//    We have no more data right now, but more may come, so we can't
 	//    hash the current block yet even if it is full.
-	if (in_len == 0) {
-		return;
-	}
+	while (in_len > 0) {
 
-	// If we get here, there is more data.
-	// If block is already full, then we know that it is not the last. So we can hash it.
-	if (st->block_fill_len == sizeof(st->block)) {
-		blake2s_hashblock(st->state, st->h, st->t, st->block, st->block_fill_len, 0);
-		memset(st->block, 0, sizeof(st->block));
-		st->block_fill_len = 0;
-	}
-
-	// Copy into block buffer if
-	// a) Block already has some data, or
-	// b) Remaining data is less than block size, or
-	// c) Remaining data exactly fits block size, so we can copy it but not hash it.
-	if (st->block_fill_len > 0 || in_len <= sizeof(st->block)) {
-
-		// Copy lesser of:
-		// a) Remaining space in block
-		// b) Remaining available data
-		size_t copy_len = sizeof(st->block) - st->block_fill_len;
-		if (in_len < copy_len) {
-			copy_len = in_len;
+		// If we get here, there is more data.
+		// If block is already full, then we know that it is not the last. So we can hash it.
+		if (st->block_fill_len == sizeof(st->block)) {
+			blake2s_hashblock(st->state, st->h, st->t, st->block, st->block_fill_len, 0);
+			memset(st->block, 0, sizeof(st->block));
+			st->block_fill_len = 0;
 		}
-		memcpy(&st->block[st->block_fill_len], in, copy_len);
-		st->block_fill_len += copy_len;
-		in_len -= copy_len;
-		in += copy_len;
 
-		goto again;
+		// Copy into block buffer if
+		// a) Block already has some data, or
+		// b) Remaining data is less than block size, or
+		// c) Remaining data exactly fits block size, so we can copy it but not hash it.
+		if (st->block_fill_len > 0 || in_len <= sizeof(st->block)) {
+
+			// Copy lesser of:
+			// a) Remaining space in block
+			// b) Remaining available data
+			size_t copy_len = sizeof(st->block) - st->block_fill_len;
+			if (in_len < copy_len) {
+				copy_len = in_len;
+			}
+			memcpy(&st->block[st->block_fill_len], in, copy_len);
+			st->block_fill_len += copy_len;
+			in_len -= copy_len;
+			in += copy_len;
+
+			continue;
+		}
+
+		// Handle non-last full block directly (no copying)
+		while (in_len > sizeof(st->block)) {
+			blake2s_hashblock(st->state, st->h, st->t, in, sizeof(st->block), 0);
+			in_len -= sizeof(st->block);
+			in += sizeof(st->block);
+		}
 	}
-
-	// Handle non-last full block directly (no copying)
-	while (in_len > sizeof(st->block)) {
-		blake2s_hashblock(st->state, st->h, st->t, in, sizeof(st->block), 0);
-		in_len -= sizeof(st->block);
-		in += sizeof(st->block);
-	}
-
-	goto again;
 }
 
 void wg_blake2s_finalize(
