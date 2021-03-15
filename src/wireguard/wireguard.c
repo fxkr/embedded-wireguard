@@ -186,6 +186,348 @@ out:
 
 	return ret;
 }
+
+int wg_peer_generate_handshake_initiation(struct wg_peer *peer, union wg_message_handshake_initiation *msg)
+{
+	int ret = 1; // Error
+	struct wg_session new_session = {};
+	union wg_key dh_key;
+	union wg_symmetric_key symmetric_msg_key;
+	union wg_timestamp timestamp;
+	union wg_key temp;
+
+	memset(msg, 0, sizeof(union wg_message_handshake_initiation));
+	msg->as_fields.message_type = WG_MESSAGE_HANDSHAKE_INITIATION;
+
+	if (0 != wg_secure_random((uint8_t *)&new_session.local_index, sizeof(new_session.local_index))) {
+		goto out;
+	}
+	msg->as_fields.sender_index_le32 = wg_htole64(new_session.local_index);
+
+	if (0 != wg_hash(
+		     &new_session.chaining_key.as_hash,
+		     wg_construction, sizeof(wg_construction))) {
+		goto out;
+	}
+
+	if (0 != wg_concat_hash(
+		     &new_session.local_hash,
+		     new_session.chaining_key.as_bytes, sizeof(new_session.chaining_key.as_bytes),
+		     wg_identifier, sizeof(wg_identifier))) {
+		goto out;
+	}
+
+	if (0 != wg_concat_hash(
+		     &new_session.local_hash,
+		     new_session.local_hash.as_bytes, sizeof(new_session.local_hash.as_bytes),
+		     peer->remote_static_public.as_bytes, sizeof(peer->remote_static_public.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_dh_generate(
+		     &new_session.local_ephemeral_private,
+		     &new_session.local_ephemeral_public)) {
+		goto out;
+	}
+
+	if (0 != wg_kdf1(
+		     &new_session.chaining_key.as_hash,
+		     &new_session.chaining_key,
+		     new_session.local_ephemeral_public.as_bytes, sizeof(new_session.local_ephemeral_public.as_bytes))) {
+		goto out;
+	}
+
+	msg->as_fields.unencrypted_ephemeral = new_session.local_ephemeral_public;
+
+	if (0 != wg_concat_hash(
+		     &new_session.local_hash,
+		     new_session.local_hash.as_bytes, sizeof(new_session.local_hash.as_bytes),
+		     msg->as_fields.unencrypted_ephemeral.as_bytes, sizeof(msg->as_fields.unencrypted_ephemeral.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_dh(
+		     &dh_key,
+		     &new_session.local_ephemeral_private,
+		     &peer->remote_static_public)) {
+		goto out;
+	}
+
+	if (0 != wg_kdf2(
+		     &new_session.chaining_key.as_hash,
+		     &symmetric_msg_key.as_hash,
+		     &new_session.chaining_key,
+		     dh_key.as_bytes, sizeof(dh_key.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_aead_encrypt(
+		     msg->as_fields.encrypted_static, sizeof(msg->as_fields.encrypted_static),
+		     &symmetric_msg_key, 0,
+		     peer->local_static_public.as_bytes, sizeof(peer->local_static_public.as_bytes),
+		     new_session.local_hash.as_bytes, sizeof(new_session.local_hash.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_concat_hash(
+		     &new_session.local_hash,
+		     new_session.local_hash.as_bytes, sizeof(new_session.local_hash.as_bytes),
+		     msg->as_fields.encrypted_static, sizeof(msg->as_fields.encrypted_static))) {
+		goto out;
+	}
+
+	if (0 != wg_dh(
+		     &dh_key,
+		     &peer->local_static_private,
+		     &peer->remote_static_public)) {
+		goto out;
+	}
+
+	if (0 != wg_kdf2(
+		     &new_session.chaining_key.as_hash,
+		     &symmetric_msg_key.as_hash,
+		     &new_session.chaining_key,
+		     dh_key.as_bytes, sizeof(dh_key.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_timestamp(&timestamp)) {
+		goto out;
+	}
+
+	if (0 != wg_aead_encrypt(
+		     msg->as_fields.encrypted_timestamp, sizeof(msg->as_fields.encrypted_timestamp),
+		     &symmetric_msg_key,
+		     0,
+		     timestamp.as_bytes, sizeof(timestamp.as_bytes),
+		     new_session.local_hash.as_bytes, sizeof(new_session.local_hash.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_concat_hash(
+		     &new_session.local_hash,
+		     new_session.local_hash.as_bytes, sizeof(new_session.local_hash.as_bytes),
+		     timestamp.as_bytes, sizeof(timestamp.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_concat_hash(
+		     &temp.as_hash,
+		     wg_label_mac1, sizeof(wg_label_mac1),
+		     peer->remote_static_public.as_bytes, sizeof(peer->remote_static_public.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_mac(
+		     &msg->as_fields.mac1,
+		     &temp,
+		     msg->as_bytes,
+		     offsetof(struct wg_message_handshake_initiation_fields, mac1))) {
+		goto out;
+	}
+	new_session.last_sent_mac1 = msg->as_fields.mac1;
+
+	if (peer->session.received_cookie_valid) {
+
+		// TODO: 120 time time limit not implemented yet, see whitepaper section 5.4.4
+		if (0 != wg_mac_with_cookie(
+			     &msg->as_fields.mac2,
+			     &peer->session.received_cookie,
+			     msg->as_bytes, offsetof(struct wg_message_handshake_initiation_fields, mac2))) {
+			goto out;
+		}
+	}
+
+	if (0 != wg_window_init(&new_session.window)) {
+		goto out;
+	}
+
+	// Success. Persist state changes
+	peer->session.local_index = new_session.local_index;
+	peer->session.last_sent_mac1 = new_session.last_sent_mac1;
+	peer->session.chaining_key = new_session.chaining_key;
+	peer->session.window = new_session.window;
+	peer->session.local_hash = new_session.local_hash;
+	peer->session.local_ephemeral_private = new_session.local_ephemeral_private;
+	peer->session.local_ephemeral_public = new_session.local_ephemeral_public;
+
+	ret = 0; // Success
+
+out:
+	wg_secure_memzero(&new_session, sizeof(new_session));
+	wg_secure_memzero(&dh_key, sizeof(dh_key));
+	wg_secure_memzero(&symmetric_msg_key, sizeof(symmetric_msg_key));
+	wg_secure_memzero(&timestamp, sizeof(timestamp));
+	wg_secure_memzero(&temp, sizeof(temp));
+
+	return ret;
+}
+
+int wg_peer_handle_handshake_initiation(struct wg_peer *peer, union wg_message_handshake_initiation *msg, const struct wg_sockaddr *src, bool *out_cookie_required)
+{
+	int ret = 1; // Error
+	struct wg_session new_session = {};
+	union wg_symmetric_key symmetric_msg_key;
+	union wg_mac temp_mac;
+	union wg_key dh_key;
+	union wg_timestamp timestamp;
+	union wg_key temp;
+	union wg_key remote_static_public;
+
+	// Always initialize out parameters for safety reasons
+	*out_cookie_required = false;
+
+	if (msg->as_fields.message_type != WG_MESSAGE_HANDSHAKE_INITIATION) {
+		goto out;
+	}
+
+	if (0 != wg_peer_verify_mac1(
+		     peer,
+		     msg->as_bytes, offsetof(struct wg_message_handshake_initiation_fields, mac1),
+		     &msg->as_fields.mac1)) {
+		goto out;
+	}
+
+	if (peer->cookie_required) {
+		if (0 != wg_peer_verify_mac2(
+			     peer,
+			     src,
+			     msg->as_bytes, offsetof(struct wg_message_handshake_initiation_fields, mac2),
+			     &msg->as_fields.mac2)) {
+
+			// MAC2 required and invalid. Caller should send cookie reply
+			*out_cookie_required = true;
+			goto out;
+		}
+	}
+
+	if (0 != wg_hash(
+		     &new_session.chaining_key.as_hash,
+		     wg_construction, sizeof(wg_construction))) {
+		goto out;
+	}
+
+	if (0 != wg_concat_hash(
+		     &new_session.remote_hash,
+		     new_session.chaining_key.as_bytes, sizeof(new_session.chaining_key.as_bytes),
+		     wg_identifier, sizeof(wg_identifier))) {
+		goto out;
+	}
+
+	if (0 != wg_concat_hash(
+		     &new_session.remote_hash,
+		     new_session.remote_hash.as_bytes, sizeof(new_session.remote_hash.as_bytes),
+		     peer->local_static_public.as_bytes, sizeof(peer->local_static_public.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_concat_hash(
+		     &new_session.remote_hash,
+		     new_session.remote_hash.as_bytes, sizeof(new_session.remote_hash.as_bytes),
+		     msg->as_fields.unencrypted_ephemeral.as_bytes, sizeof(msg->as_fields.unencrypted_ephemeral.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_kdf1(
+		     &new_session.chaining_key.as_hash,
+		     &new_session.chaining_key,
+		     msg->as_fields.unencrypted_ephemeral.as_bytes, sizeof(msg->as_fields.unencrypted_ephemeral.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_dh(
+		     &dh_key,
+		     &peer->local_static_private,
+		     &msg->as_fields.unencrypted_ephemeral)) {
+		goto out;
+	}
+
+	if (0 != wg_kdf2(
+		     &new_session.chaining_key.as_hash,
+		     &symmetric_msg_key.as_hash,
+		     &new_session.chaining_key,
+		     dh_key.as_bytes, sizeof(dh_key.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_aead_decrypt(
+		     remote_static_public.as_bytes, sizeof(remote_static_public.as_bytes),
+		     &symmetric_msg_key, 0,
+		     msg->as_fields.encrypted_static, sizeof(msg->as_fields.encrypted_static),
+		     new_session.remote_hash.as_bytes, sizeof(new_session.remote_hash.as_bytes))) {
+		goto out;
+	}
+
+	if (!wg_key_equals(&remote_static_public, &peer->remote_static_public)) {
+		goto out;
+	}
+
+	if (0 != wg_concat_hash(
+		     &new_session.remote_hash,
+		     new_session.remote_hash.as_bytes, sizeof(new_session.remote_hash.as_bytes),
+		     msg->as_fields.encrypted_static, sizeof(msg->as_fields.encrypted_static))) {
+		goto out;
+	}
+
+	if (0 != wg_dh(
+		     &dh_key,
+		     &peer->local_static_private,
+		     &peer->remote_static_public)) {
+		goto out;
+	}
+
+	if (0 != wg_kdf2(
+		     &new_session.chaining_key.as_hash,
+		     &symmetric_msg_key.as_hash,
+		     &new_session.chaining_key,
+		     dh_key.as_bytes, sizeof(dh_key.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_aead_decrypt(
+		     timestamp.as_bytes, sizeof(timestamp.as_bytes),
+		     &symmetric_msg_key,
+		     0,
+		     msg->as_fields.encrypted_timestamp, sizeof(msg->as_fields.encrypted_timestamp),
+		     new_session.remote_hash.as_bytes, sizeof(new_session.remote_hash.as_bytes))) {
+		goto out;
+	}
+
+	if (0 != wg_concat_hash(
+		     &new_session.remote_hash,
+		     new_session.remote_hash.as_bytes, sizeof(new_session.remote_hash.as_bytes),
+		     timestamp.as_bytes, sizeof(timestamp.as_bytes))) {
+		goto out;
+	}
+
+	// TODO: Handle timestamp
+	new_session.remote_index = wg_le32toh(msg->as_fields.sender_index_le32);
+	new_session.remote_ephemeral_public = msg->as_fields.unencrypted_ephemeral;
+
+	if (0 != wg_window_init(&new_session.window)) {
+		goto out;
+	}
+
+	// Success. Persist state changes
+	peer->session.chaining_key = new_session.chaining_key;
+	peer->session.window = new_session.window;
+	peer->session.remote_hash = new_session.remote_hash;
+	peer->session.remote_index = new_session.remote_index;
+	peer->session.remote_ephemeral_public = new_session.remote_ephemeral_public;
+
+	ret = 0; // Success
+
+out:
+	wg_secure_memzero(&remote_static_public, sizeof(remote_static_public));
+	wg_secure_memzero(&new_session, sizeof(new_session));
+	wg_secure_memzero(&symmetric_msg_key, sizeof(symmetric_msg_key));
+	wg_secure_memzero(&temp_mac, sizeof(temp_mac));
+	wg_secure_memzero(&dh_key, sizeof(dh_key));
+	wg_secure_memzero(&timestamp, sizeof(timestamp));
+	wg_secure_memzero(&temp, sizeof(temp));
+
+	return ret;
+}
 int wg_window_init(struct wg_window *window)
 {
 	memset(window, 0, sizeof(struct wg_window));
