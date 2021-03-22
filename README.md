@@ -1,4 +1,4 @@
-# Embedded Wireguard
+# Embedded WireGuard
 
 ## Project status
 
