@@ -7,9 +7,7 @@
 // Instead we use the time since boot.
 int wg_time(struct wg_time *out)
 {
-	int ret;
-
-	uint64_t now = micros64();
+	uint64_t micros64_value = micros64();
 
 	const uint64_t us_per_s = 1e6;
 	const uint64_t ns_per_us = 1e3;
