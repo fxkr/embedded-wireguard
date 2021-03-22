@@ -11,6 +11,14 @@ const uint8_t wg_identifier[34] = {"WireGuard v1 zx2c4 Jason@zx2c4.com"};
 const uint8_t wg_label_mac1[8] = {"mac1----"};
 const uint8_t wg_label_cookie[8] = {"cookie--"};
 
+const uint64_t wg_rekey_after_messages = 1ULL << 60;
+const uint64_t wg_reject_after_messages = (~0ULL) - (1ULL << 13);
+const uint64_t wg_rekey_after_seconds = 120;
+const uint64_t wg_reject_after_seconds = 180;
+const uint64_t wg_rekey_attempt_seconds = 90;
+const uint64_t wg_rekey_timeout_seconds = 5;
+const uint64_t wg_keepalive_timeout_seconds = 10;
+
 int wg_init(void)
 {
 	if (0 != wg_crypto_init()) {
