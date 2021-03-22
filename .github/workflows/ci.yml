@@ -69,3 +69,6 @@ jobs:
 
       - name: Build dummy-esp8266 example
         run: platformio ci examples/dummy-esp8266/main.cpp --lib=. --project-conf=examples/dummy-esp8266/platformio.ini
+
+      - name: Try packaging library
+        run: platformio package pack -o /dev/null
