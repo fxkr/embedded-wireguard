@@ -7,13 +7,9 @@
 #include <ChaChaPoly.h>
 #include <Crypto.h>
 #include <Curve25519.h>
-#include <RingOscillatorNoiseSource.h>
 
 #include "wireguard/crypto.h"
 #include "wireguard/platform.h"
-
-RNGClass rng;
-RingOscillatorNoiseSource noise;
 
 int wg_aead_encrypt(
     uint8_t *out_ciphertext_with_tag, size_t out_ciphertext_with_tag_len,
@@ -126,7 +122,7 @@ int wg_dh(
 		goto out; // Error
 	}
 
-	err = 0; // Success
+	ret = 0; // Success
 
 out:
 	wg_secure_memzero(&priv_copy.as_bytes, sizeof(priv_copy.as_bytes));
@@ -150,14 +146,10 @@ bool wg_mac_equals(
 
 int wg_secure_random(uint8_t *out, size_t out_len)
 {
-	rng.rand(out, len);
-	return 0; // Success
+	return 1; // Not implemented yet
 }
 
-int wg_crypto_init(void)
+extern "C" int wg_crypto_init(void)
 {
-	rng.begin("Embedded WireGuard");
-	rng.addNoiseSource(noise);
-
-	return 0; // Success
+	return 1; // Not implemented yet
 }
