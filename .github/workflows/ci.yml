@@ -60,3 +60,6 @@ jobs:
 
       - name: PlatformIO test
         run: platformio test -e native
+
+      - name: Build dummy-linux example
+        run: platformio ci examples/dummy-linux/main.c --lib=. --project-conf=examples/dummy-linux/platformio.ini
