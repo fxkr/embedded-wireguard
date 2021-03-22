@@ -1,0 +1,41 @@
+{
+        "name": "embedded-wireguard",
+        "version": "0.0.1",
+        "description": "WireGuard implementation for applications and embedded systems.",
+        "keywords": [
+                "wireguard"
+        ],
+        "repository": {
+                "type": "git",
+                "url": "https://docs.platformio.org/en/latest/core/userguide/package/cmd_pack.html#cmd-package-pack"
+        },
+        "authors": {
+                "name": "Felix Kaiser"
+        },
+        "export": {
+                "include": [
+                        "src/*.c",
+                        "src/*.cpp",
+                        "src/*.h"
+                ]
+        },
+        "dependencies": [
+                {
+                        "name": "libsodium",
+                        "version": "https://github.com/embedded-wireguard/libsodium.git#platformio",
+                        "platforms": [
+                                "native"
+                        ]
+                },
+                {
+                        "owner": "rweather",
+                        "name": "Crypto",
+                        "platforms": [
+                                "espressif8266"
+                        ]
+                }
+        ],
+        "build": {
+                "extraScript": "extra_script.py"
+        }
+}

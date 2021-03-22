@@ -31,6 +31,7 @@ jobs:
 
       - name: Install
         run: sudo apt-get update && sudo apt-get install -y build-essential
+
       - name: Cache pip
         uses: actions/cache@v2
         with:
@@ -58,4 +59,4 @@ jobs:
           platformio lib -g install
 
       - name: PlatformIO test
-        run: platformio test -e native-test
+        run: platformio test -e native
