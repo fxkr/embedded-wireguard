@@ -46,10 +46,16 @@ jobs:
 
       - name: Python installation
         uses: actions/setup-python@v2
+
       - name: Install PlatformIO
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade platformio
+
+      - name: Install PlatformIO dependencies
+        run: |
+          platformio platform install native
+          platformio lib -g install
 
       - name: PlatformIO test
         run: platformio test -e native-test
