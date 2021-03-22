@@ -152,6 +152,7 @@ int main(int argc, char **argv)
 	UNITY_BEGIN();
 	RUN_TEST(test_mac_equals);
 	RUN_TEST(test_hash_equals);
+	RUN_TEST(test_key_equals);
 	RUN_TEST(test_hash);
 	RUN_TEST(test_concat_hash);
 	RUN_TEST(test_mac);
