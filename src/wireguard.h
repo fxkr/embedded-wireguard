@@ -1,6 +1,10 @@
 #ifndef WG_WIREGUARD_API_H
 #define WG_WIREGUARD_API_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // This is the public interface to Embedded WireGuard.
 // Include only this header: #include <wireguard.h>
 //
@@ -15,5 +19,9 @@
 // This function must be called at least once before any other Embedded WireGuard
 // functions are used. It is safe to call it any number of times.
 int __attribute__((warn_unused_result)) wg_init(void);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif

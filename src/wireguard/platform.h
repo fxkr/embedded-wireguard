@@ -78,6 +78,18 @@ _Static_assert(wg_timestamp_len == 12, "");
 // Time is monotonically increasing.
 int __attribute__((warn_unused_result)) wg_timestamp(union wg_timestamp *out);
 
+// Represents the current time.
+struct wg_time {
+	// Seconds since 1970 TAI.
+	uint64_t seconds;
+	// Nanoseconds since begin of current second.
+	uint32_t nanoseconds;
+};
+
+// Gets current time.
+// Time is monotonically increasing.
+int __attribute__((warn_unused_result)) wg_time(struct wg_time *out);
+
 // memcpy wrapper that statically verifies the sizes are the same.
 #define wg_safe_memcpy(dst, dst_size, src, src_size) ({ \
 	_Static_assert((dst_size) == (src_size), "");   \

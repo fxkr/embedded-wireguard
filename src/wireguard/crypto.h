@@ -3,6 +3,10 @@
 
 #include "wireguard/platform.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define WG_CURVE25519_KEY_SIZE 32
 #define WG_CHACHA20POLY1305_KEY_SIZE 32
 #define WG_CHACHA20POLY1305_AUTHTAG_SIZE 16
@@ -250,5 +254,9 @@ int __attribute__((warn_unused_result)) wg_base64_to_key(
 // from Embedded WireGuard's cryptographic subsystem are used.
 // It is safe to call it any number of times.
 int __attribute__((warn_unused_result)) wg_crypto_init(void);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif

@@ -1,6 +1,9 @@
 name: Continuous Integration
 
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches: master
 
 jobs:
   clang-format:
@@ -31,6 +34,7 @@ jobs:
 
       - name: Install
         run: sudo apt-get update && sudo apt-get install -y build-essential
+
       - name: Cache pip
         uses: actions/cache@v2
         with:
@@ -46,10 +50,22 @@ jobs:
 
       - name: Python installation
         uses: actions/setup-python@v2
+
       - name: Install PlatformIO
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade platformio
 
+      - name: Install PlatformIO dependencies
+        run: |
+          platformio platform install native
+          platformio lib -g install
+
       - name: PlatformIO test
-        run: platformio test -e native-test
+        run: platformio test -e native
+
+      - name: Build dummy-linux example
+        run: platformio ci examples/dummy-linux/main.c --lib=. --project-conf=examples/dummy-linux/platformio.ini
+
+      - name: Build dummy-esp8266 example
+        run: platformio ci examples/dummy-esp8266/main.cpp --lib=. --project-conf=examples/dummy-esp8266/platformio.ini
