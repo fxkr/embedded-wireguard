@@ -118,6 +118,9 @@ struct wg_session {
 
 	// Used to track received sequence numbers to prevent replay attacks.
 	struct wg_window window;
+
+	// True if we sent the handshake initiation, not the response.
+	bool is_initiator;
 };
 
 // Represents a tunnel to a specific peer. Contains both static configuration

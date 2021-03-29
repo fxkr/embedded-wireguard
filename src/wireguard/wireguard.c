@@ -351,6 +351,8 @@ int wg_peer_generate_handshake_initiation(struct wg_peer *peer, union wg_message
 		goto out;
 	}
 
+	new_session.is_initiator = true;
+
 	// Success. Persist state changes
 	peer->session.local_index = new_session.local_index;
 	peer->session.last_sent_mac1 = new_session.last_sent_mac1;
@@ -359,6 +361,7 @@ int wg_peer_generate_handshake_initiation(struct wg_peer *peer, union wg_message
 	peer->session.local_hash = new_session.local_hash;
 	peer->session.local_ephemeral_private = new_session.local_ephemeral_private;
 	peer->session.local_ephemeral_public = new_session.local_ephemeral_public;
+	peer->session.is_initiator = new_session.is_initiator;
 
 	ret = 0; // Success
 
@@ -517,12 +520,15 @@ int wg_peer_handle_handshake_initiation(struct wg_peer *peer, union wg_message_h
 		goto out;
 	}
 
+	new_session.is_initiator = false;
+
 	// Success. Persist state changes
 	peer->session.chaining_key = new_session.chaining_key;
 	peer->session.window = new_session.window;
 	peer->session.remote_hash = new_session.remote_hash;
 	peer->session.remote_index = new_session.remote_index;
 	peer->session.remote_ephemeral_public = new_session.remote_ephemeral_public;
+	peer->session.is_initiator = new_session.is_initiator;
 
 	ret = 0; // Success
 
