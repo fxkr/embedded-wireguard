@@ -98,6 +98,7 @@ void test_tunnel(void)
 	TEST_ASSERT_EQUAL(0, wg_peer_generate_handshake_initiation(&peer1, &handshake_initiation_msg));
 	TEST_ASSERT_EQUAL(0, wg_peer_handle_handshake_initiation(&peer2, &handshake_initiation_msg, &peer1_addr, &cookie_required));
 	TEST_ASSERT_EQUAL(false, cookie_required);
+	TEST_ASSERT_EQUAL(true, peer1.session.is_initiator);
 	TEST_ASSERT_FALSE(wg_key_equals(&peer1.session.local_ephemeral_public, &empty_key));
 	TEST_ASSERT_TRUE(wg_key_equals(&peer1.session.remote_ephemeral_public, &empty_key));
 	TEST_ASSERT_FALSE(wg_key_equals(&peer1.session.chaining_key, &empty_key));
@@ -105,6 +106,7 @@ void test_tunnel(void)
 	TEST_ASSERT_FALSE(wg_hash_equals(&peer1.session.local_hash, &empty_hash));
 	TEST_ASSERT_TRUE(wg_symmetric_key_equals(&peer1.session.sending_key, &empty_symmetric_key));
 	TEST_ASSERT_TRUE(wg_symmetric_key_equals(&peer1.session.receiving_key, &empty_symmetric_key));
+	TEST_ASSERT_EQUAL(false, peer2.session.is_initiator);
 	TEST_ASSERT_TRUE(wg_key_equals(&peer2.session.local_ephemeral_public, &empty_key));
 	TEST_ASSERT_FALSE(wg_key_equals(&peer2.session.remote_ephemeral_public, &empty_key));
 	TEST_ASSERT_FALSE(wg_key_equals(&peer2.session.chaining_key, &empty_key));
@@ -122,11 +124,13 @@ void test_tunnel(void)
 	TEST_ASSERT_EQUAL(0, wg_peer_generate_handshake_response(&peer2, &handshake_response_msg));
 	TEST_ASSERT_EQUAL(0, wg_peer_handle_handshake_response(&peer1, &handshake_response_msg, &peer2_addr, &cookie_required));
 	TEST_ASSERT_EQUAL(false, cookie_required);
+	TEST_ASSERT_EQUAL(true, peer1.session.is_initiator);
 	TEST_ASSERT_TRUE(wg_key_equals(&peer1.session.local_ephemeral_public, &empty_key));
 	TEST_ASSERT_TRUE(wg_key_equals(&peer1.session.remote_ephemeral_public, &empty_key));
 	TEST_ASSERT_TRUE(wg_key_equals(&peer1.session.chaining_key, &empty_key));
 	TEST_ASSERT_TRUE(wg_hash_equals(&peer1.session.remote_hash, &empty_hash));
 	TEST_ASSERT_TRUE(wg_hash_equals(&peer1.session.local_hash, &empty_hash));
+	TEST_ASSERT_EQUAL(false, peer2.session.is_initiator);
 	TEST_ASSERT_TRUE(wg_key_equals(&peer2.session.local_ephemeral_public, &empty_key));
 	TEST_ASSERT_TRUE(wg_key_equals(&peer2.session.remote_ephemeral_public, &empty_key));
 	TEST_ASSERT_TRUE(wg_key_equals(&peer2.session.chaining_key, &empty_key));
